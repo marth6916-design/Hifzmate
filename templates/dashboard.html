@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — HifzMate</title>
+  <link rel="stylesheet" href="../static/css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body class="page-dashboard">
+
+  <canvas id="starfield"></canvas>
+
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">☪</span>
+      <span class="brand-text">HifzMate</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/recite">Recite</a></li>
+      <li><a href="/dashboard" class="active">Dashboard</a></li>
+      <li><a href="/progress">Progress</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="/recite" class="btn-primary">Start Reciting</a>
+    </div>
+  </nav>
+
+  <main class="dashboard-main">
+
+    <div class="dash-header">
+      <h1>Your Dashboard</h1>
+      <p>Track your Hifz journey — every ayah counts.</p>
+    </div>
+
+    <!-- ── Stats Row ── -->
+    <div class="dash-stats">
+      <div class="dash-stat-card">
+        <i class="fas fa-calendar-days"></i>
+        <div>
+          <span class="stat-big" id="totalSessions">0</span>
+          <span class="stat-lbl">Sessions</span>
+        </div>
+      </div>
+      <div class="dash-stat-card">
+        <i class="fas fa-bullseye"></i>
+        <div>
+          <span class="stat-big" id="avgAccuracy">0%</span>
+          <span class="stat-lbl">Avg Accuracy</span>
+        </div>
+      </div>
+      <div class="dash-stat-card">
+        <i class="fas fa-fire"></i>
+        <div>
+          <span class="stat-big" id="streakDays">0</span>
+          <span class="stat-lbl">Day Streak</span>
+        </div>
+      </div>
+      <div class="dash-stat-card">
+        <i class="fas fa-book-open"></i>
+        <div>
+          <span class="stat-big" id="totalAyahs">0</span>
+          <span class="stat-lbl">Ayahs Practiced</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Charts Row ── -->
+    <div class="charts-row">
+      <div class="chart-card wide">
+        <h3><i class="fas fa-chart-line"></i> Accuracy Over Time</h3>
+        <canvas id="accuracyChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3><i class="fas fa-chart-pie"></i> Surah Distribution</h3>
+        <canvas id="surahChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ── Recent Sessions ── -->
+    <div class="sessions-card">
+      <h3><i class="fas fa-clock-rotate-left"></i> Recent Sessions</h3>
+      <table class="sessions-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Surah</th>
+            <th>Ayah</th>
+            <th>Accuracy</th>
+            <th>Mistakes</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="sessionsBody">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Badges ── -->
+    <div class="badges-card">
+      <h3><i class="fas fa-medal"></i> Motivational Badges</h3>
+      <div class="badges-grid">
+        <div class="badge-item earned" title="First Recitation">
+          <i class="fas fa-star"></i>
+          <span>First Step</span>
+        </div>
+        <div class="badge-item earned" title="5 Sessions">
+          <i class="fas fa-fire"></i>
+          <span>On Fire</span>
+        </div>
+        <div class="badge-item" title="90%+ Accuracy">
+          <i class="fas fa-bullseye"></i>
+          <span>Sharpshooter</span>
+        </div>
+        <div class="badge-item" title="7-Day Streak">
+          <i class="fas fa-calendar-week"></i>
+          <span>Week Warrior</span>
+        </div>
+        <div class="badge-item" title="Complete a Surah">
+          <i class="fas fa-book"></i>
+          <span>Surah Master</span>
+        </div>
+        <div class="badge-item" title="100 Ayahs">
+          <i class="fas fa-trophy"></i>
+          <span>Century</span>
+        </div>
+        <div class="badge-item" title="Perfect Score">
+          <i class="fas fa-crown"></i>
+          <span>Perfection</span>
+        </div>
+        <div class="badge-item" title="30-Day Streak">
+          <i class="fas fa-moon"></i>
+          <span>Ramadan Mode</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Revision Planner ── -->
+    <div class="planner-card">
+      <h3><i class="fas fa-calendar-check"></i> Revision Planner</h3>
+      <p class="planner-sub">Ayahs recommended for today's revision based on your history:</p>
+      <ul class="revision-list" id="revisionList">
+        <!-- Populated by JS -->
+      </ul>
+    </div>
+
+  </main>
+
+  <script src="../static/js/app.js"></script>
+  <script src="../static/js/dashboard.js"></script>
+</body>
+</html>

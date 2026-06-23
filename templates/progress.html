@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Progress — HifzMate</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body class="page-dashboard">
+
+  <canvas id="starfield"></canvas>
+
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">☪</span>
+      <span class="brand-text">HifzMate</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/recite">Recite</a></li>
+      <li><a href="/dashboard">Dashboard</a></li>
+      <li><a href="/progress" class="active">Progress</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="/recite" class="btn-primary">Start Reciting</a>
+    </div>
+  </nav>
+
+  <main class="dashboard-main">
+
+    <div class="dash-header">
+      <h1><i class="fas fa-chart-line" style="color:var(--teal);margin-right:.5rem"></i> My Progress</h1>
+      <p>Detailed breakdown of your Hifz journey over time.</p>
+    </div>
+
+    <!-- ── Summary Cards ── -->
+    <div class="dash-stats">
+      <div class="dash-stat-card">
+        <i class="fas fa-circle-check" style="color:var(--success)"></i>
+        <div>
+          <span class="stat-big" id="bestAccuracy">—</span>
+          <span class="stat-lbl">Best Accuracy</span>
+        </div>
+      </div>
+      <div class="dash-stat-card">
+        <i class="fas fa-circle-xmark" style="color:var(--danger)"></i>
+        <div>
+          <span class="stat-big" id="totalMistakes">—</span>
+          <span class="stat-lbl">Total Mistakes Fixed</span>
+        </div>
+      </div>
+      <div class="dash-stat-card">
+        <i class="fas fa-trophy" style="color:var(--gold)"></i>
+        <div>
+          <span class="stat-big" id="perfectSessions">—</span>
+          <span class="stat-lbl">Perfect Sessions (90%+)</span>
+        </div>
+      </div>
+      <div class="dash-stat-card">
+        <i class="fas fa-book-open" style="color:var(--teal)"></i>
+        <div>
+          <span class="stat-big" id="surahsCount">—</span>
+          <span class="stat-lbl">Surahs Practiced</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Accuracy Trend (larger) ── -->
+    <div class="chart-card" style="margin-bottom:1.5rem">
+      <h3><i class="fas fa-chart-line"></i> Accuracy Trend — All Sessions</h3>
+      <canvas id="trendChart" height="80"></canvas>
+    </div>
+
+    <!-- ── Per-Surah Performance ── -->
+    <div class="chart-card" style="margin-bottom:1.5rem">
+      <h3><i class="fas fa-chart-bar"></i> Average Accuracy Per Surah</h3>
+      <canvas id="surahBarChart" height="80"></canvas>
+    </div>
+
+    <!-- ── Heatmap-style week grid ── -->
+    <div class="sessions-card" style="margin-bottom:1.5rem">
+      <h3><i class="fas fa-calendar-days"></i> Practice Calendar (Last 30 Days)</h3>
+      <div class="heatmap-grid" id="heatmapGrid"></div>
+      <div class="heatmap-legend">
+        <span class="hm-box hm-0"></span> No practice
+        <span class="hm-box hm-1"></span> 1 session
+        <span class="hm-box hm-2"></span> 2–3 sessions
+        <span class="hm-box hm-3"></span> 4+ sessions
+      </div>
+    </div>
+
+    <!-- ── All Sessions Table ── -->
+    <div class="sessions-card">
+      <h3><i class="fas fa-list"></i> All Sessions</h3>
+      <table class="sessions-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Date & Time</th>
+            <th>Surah</th>
+            <th>Ayah</th>
+            <th>Accuracy</th>
+            <th>Mistakes</th>
+            <th>Grade</th>
+          </tr>
+        </thead>
+        <tbody id="allSessionsBody">
+          <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/progress.js') }}"></script>
+</body>
+</html>

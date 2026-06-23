@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HifzMate — AI Quran Memorization Assistant</title>
+  <link rel="stylesheet" href="../static/css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body>
+
+  <!-- ── Starfield Background ── -->
+  <canvas id="starfield"></canvas>
+
+  <!-- ── Navigation ── -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">☪</span>
+      <span class="brand-text">HifzMate</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="/" class="active">Home</a></li>
+      <li><a href="/recite">Recite</a></li>
+      <li><a href="/dashboard">Dashboard</a></li>
+      <li><a href="/progress">Progress</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="/recite" class="btn-primary">Start Reciting</a>
+    </div>
+  </nav>
+
+  <!-- ── Hero Section ── -->
+  <section class="hero">
+    <div class="hero-ornament top-left"></div>
+    <div class="hero-ornament top-right"></div>
+
+    <div class="hero-content">
+      <p class="hero-label">AI-Powered Quran Assistant</p>
+      <h1 class="hero-title">
+        <span class="gold-text">HIFZ</span>MATE
+      </h1>
+      <p class="hero-arabic">بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ</p>
+      <p class="hero-subtitle">
+        Recite. Listen. Improve. — Your intelligent companion for<br/>
+        Quran memorization with real-time AI feedback.
+      </p>
+      <div class="hero-buttons">
+        <a href="/recite" class="btn-primary large">
+          <i class="fas fa-microphone"></i> Start Reciting
+        </a>
+        <a href="/dashboard" class="btn-outline large">
+          <i class="fas fa-chart-line"></i> View Progress
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="quran-card">
+        <div class="quran-glow"></div>
+        <div class="quran-icon-wrap">
+          <i class="fas fa-book-open quran-icon"></i>
+        </div>
+        <p class="quran-verse" dir="rtl">
+          اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ
+        </p>
+        <p class="quran-ref">Surah Al-Alaq • 96:1</p>
+        <div class="accuracy-badge">
+          <span class="acc-label">Accuracy</span>
+          <span class="acc-value">97%</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Features Section ── -->
+  <section class="features" id="features">
+    <div class="section-header">
+      <p class="section-label">What HifzMate Offers</p>
+      <h2 class="section-title">Key Features</h2>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card" style="--delay:0s">
+        <div class="feature-icon"><i class="fas fa-microphone-lines"></i></div>
+        <h3>Voice Recitation</h3>
+        <p>Recite in Arabic or Urdu — our AI listens and evaluates every word with precision.</p>
+      </div>
+      <div class="feature-card" style="--delay:0.1s">
+        <div class="feature-icon"><i class="fas fa-waveform-lines"></i></div>
+        <h3>Speech to Text</h3>
+        <p>Advanced speech recognition converts your recitation into text instantly.</p>
+      </div>
+      <div class="feature-card" style="--delay:0.2s">
+        <div class="feature-icon"><i class="fas fa-spell-check"></i></div>
+        <h3>Quran Text Matching</h3>
+        <p>Compare your recitation against the exact Quranic text from the official API.</p>
+      </div>
+      <div class="feature-card" style="--delay:0.3s">
+        <div class="feature-icon"><i class="fas fa-percent"></i></div>
+        <h3>Accuracy Score</h3>
+        <p>Get a live accuracy percentage after every ayah you recite.</p>
+      </div>
+      <div class="feature-card" style="--delay:0.4s">
+        <div class="feature-icon"><i class="fas fa-circle-xmark"></i></div>
+        <h3>Wrong Word Detection</h3>
+        <p>Each incorrect word is highlighted so you know exactly where to focus.</p>
+      </div>
+      <div class="feature-card" style="--delay:0.5s">
+        <div class="feature-icon"><i class="fas fa-bolt"></i></div>
+        <h3>Instant Feedback</h3>
+        <p>Receive feedback the moment you finish — no waiting, no delays.</p>
+      </div>
+      <div class="feature-card" style="--delay:0.6s">
+        <div class="feature-icon"><i class="fas fa-rotate"></i></div>
+        <h3>Revision Suggestions</h3>
+        <p>Smart suggestions on which ayahs to revise based on your history.</p>
+      </div>
+      <div class="feature-card" style="--delay:0.7s">
+        <div class="feature-icon"><i class="fas fa-chart-bar"></i></div>
+        <h3>Progress Tracking</h3>
+        <p>Visual analytics showing your improvement over days and weeks.</p>
+      </div>
+      <div class="feature-card" style="--delay:0.8s">
+        <div class="feature-icon"><i class="fas fa-display"></i></div>
+        <h3>User Friendly UI</h3>
+        <p>Clean, intuitive interface designed for students of all ages.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Smart Features ── -->
+  <section class="smart-section">
+    <div class="section-header">
+      <p class="section-label">Powered by Intelligence</p>
+      <h2 class="section-title">Smart Features</h2>
+    </div>
+    <div class="smart-grid">
+      <div class="smart-card">
+        <i class="fas fa-clock-rotate-left"></i>
+        <span>Real-Time Feedback</span>
+      </div>
+      <div class="smart-card">
+        <i class="fas fa-highlighter"></i>
+        <span>Mistake Highlighting</span>
+      </div>
+      <div class="smart-card">
+        <i class="fas fa-chart-line"></i>
+        <span>Progress Analytics</span>
+      </div>
+      <div class="smart-card">
+        <i class="fas fa-calendar-check"></i>
+        <span>Revision Planner</span>
+      </div>
+      <div class="smart-card">
+        <i class="fas fa-language"></i>
+        <span>Multi-Language</span>
+      </div>
+      <div class="smart-card">
+        <i class="fas fa-wifi-slash"></i>
+        <span>Offline Mode</span>
+      </div>
+      <div class="smart-card">
+        <i class="fas fa-medal"></i>
+        <span>Motivational Badges</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Stats ── -->
+  <section class="stats-section">
+    <div class="stat-item">
+      <span class="stat-number" data-target="114">0</span>
+      <span class="stat-label">Surahs Supported</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number" data-target="6236">0</span>
+      <span class="stat-label">Total Ayahs</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number" data-target="97">0</span>
+      <span class="stat-label">% Accuracy Possible</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number" data-target="2">0</span>
+      <span class="stat-label">Languages (Arabic & Urdu)</span>
+    </div>
+  </section>
+
+  <!-- ── CTA ── -->
+  <section class="cta-section">
+    <div class="cta-content">
+      <h2>Begin Your Hifz Journey Today</h2>
+      <p>Let AI guide your recitation — one ayah at a time.</p>
+      <a href="/recite" class="btn-primary large">
+        <i class="fas fa-microphone"></i> Start Now
+      </a>
+    </div>
+  </section>
+
+  <!-- ── Footer ── -->
+  <footer class="footer">
+    <div class="footer-brand">
+      <span class="brand-icon">☪</span> HifzMate
+    </div>
+    <p>Developed by <strong>Adeel Hussain, Rai Kamran Akram, Hafiz Abdullah Dastgeer</strong></p>
+    <p>Department of CS & IT · Baba Guru Nanak University, Nankana Sahib</p>
+    <p>Supervised by <strong>Mr. M Shahzad Nazir</strong></p>
+    <p class="footer-copy">© 2025 HifzMate · Tech Spark 2.0</p>
+  </footer>
+
+  <script src="../static/js/app.js"></script>
+</body>
+</html>

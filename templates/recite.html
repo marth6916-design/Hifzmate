@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Recite — HifzMate</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body class="page-recite">
+
+  <canvas id="starfield"></canvas>
+
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">☪</span>
+      <span class="brand-text">HifzMate</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/recite" class="active">Recite</a></li>
+      <li><a href="/dashboard">Dashboard</a></li>
+      <li><a href="/progress">Progress</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="/recite" class="btn-primary">Start Reciting</a>
+    </div>
+  </nav>
+
+  <main class="recite-main">
+
+    <!-- ── Selector Panel ── -->
+    <div class="selector-panel">
+      <h2 class="panel-title"><i class="fas fa-quran"></i> Choose Ayah</h2>
+      <div class="selector-row">
+        <div class="select-group">
+          <label>Surah</label>
+          <select id="surahSelect">
+            <option value="1">1. Al-Fatiha</option>
+            <option value="2">2. Al-Baqarah</option>
+            <option value="3">3. Ali 'Imran</option>
+            <option value="4">4. An-Nisa</option>
+            <option value="5">5. Al-Maidah</option>
+            <option value="36">36. Ya-Sin</option>
+            <option value="67">67. Al-Mulk</option>
+            <option value="112">112. Al-Ikhlas</option>
+            <option value="113">113. Al-Falaq</option>
+            <option value="114">114. An-Nas</option>
+          </select>
+        </div>
+        <div class="select-group">
+          <label>Ayah</label>
+          <input type="number" id="ayahInput" value="1" min="1" max="286"/>
+        </div>
+        <div class="select-group">
+          <label>Recite In</label>
+          <select id="langSelect">
+            <option value="ar-SA">Arabic</option>
+            <option value="ur-PK">Urdu</option>
+          </select>
+        </div>
+        <button class="btn-primary" id="loadBtn">
+          <i class="fas fa-arrow-right"></i> Load Ayah
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Verse Display ── -->
+    <div class="verse-panel" id="versePanel">
+      <div class="verse-loader" id="verseLoader">
+        <div class="loader-ring"></div>
+        <p>Loading ayah...</p>
+      </div>
+
+      <div class="verse-content" id="verseContent" style="display:none">
+
+        <!-- Header row: ref + Listen + Urdu toggle -->
+        <div class="verse-header">
+          <span class="verse-ref" id="verseRef">Al-Fatiha • 1:1</span>
+          <div class="verse-header-btns">
+            <!-- FIX 1: Play/Pause toggle -->
+            <button class="audio-btn" id="playAudio" title="Listen to correct recitation">
+              <i class="fas fa-volume-high"></i> Listen
+            </button>
+            <!-- FIX 2: Urdu toggle button -->
+            <button class="urdu-toggle-btn" id="urduToggleBtn" title="Show/Hide Urdu translation">
+              <i class="fas fa-eye-slash"></i> Hide Urdu
+            </button>
+          </div>
+        </div>
+
+        <!-- Arabic text -->
+        <p class="arabic-text" id="arabicText" dir="rtl"></p>
+
+        <!-- Urdu translation (toggleable) -->
+        <p class="urdu-text" id="urduText" dir="rtl"></p>
+
+        <!-- Word-level highlight after checking -->
+        <div class="highlighted-words" id="highlightedWords"></div>
+
+      </div>
+    </div>
+
+    <!-- ── Recording Panel ── -->
+    <div class="record-panel">
+      <div class="record-info">
+        <p id="recordStatus">Press the button and recite the ayah clearly</p>
+        <div class="waveform-wrap">
+          <canvas id="waveform" width="600" height="60"></canvas>
+        </div>
+      </div>
+
+      <button class="mic-button" id="micBtn">
+        <div class="mic-ripple"></div>
+        <i class="fas fa-microphone"></i>
+      </button>
+
+      <div class="record-controls">
+        <button class="btn-outline" id="playbackBtn" disabled>
+          <i class="fas fa-play"></i> Playback
+        </button>
+        <button class="btn-primary" id="checkBtn" disabled>
+          <i class="fas fa-check"></i> Check Recitation
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Feedback Panel ── -->
+    <div class="feedback-panel" id="feedbackPanel" style="display:none">
+      <div class="feedback-header">
+        <h3><i class="fas fa-star"></i> Your Result</h3>
+        <button class="btn-outline small" id="retryBtn">
+          <i class="fas fa-rotate-right"></i> Retry
+        </button>
+      </div>
+
+      <!-- Accuracy ring -->
+      <div class="accuracy-ring-wrap">
+        <svg class="accuracy-ring" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="50" class="ring-bg"/>
+          <circle cx="60" cy="60" r="50" class="ring-fill" id="ringFill"/>
+        </svg>
+        <div class="accuracy-text">
+          <span id="accuracyNum">0</span>%
+          <small>Accuracy</small>
+        </div>
+      </div>
+
+      <p class="feedback-msg" id="feedbackMsg"></p>
+
+      <!-- What you said -->
+      <p class="spoken-display" id="spokenTextDisplay"></p>
+
+      <!-- Mistakes breakdown -->
+      <div class="mistakes-list" id="mistakesList"></div>
+
+      <div class="feedback-actions">
+        <button class="btn-primary" id="nextAyahBtn">
+          <i class="fas fa-forward"></i> Next Ayah
+        </button>
+        <button class="btn-outline" id="saveSessionBtn">
+          <i class="fas fa-floppy-disk"></i> Save Session
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <audio id="recitationAudio" preload="none"></audio>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/recite.js') }}"></script>
+</body>
+</html>
