@@ -1,7 +1,9 @@
 venv/
 __pycache__/
 *.pyc
-*.db
-database/*.db
+*.pyo
 instance/
+*.db
 .env
+.DS_Store
+*.log

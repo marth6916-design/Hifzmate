@@ -1,12 +1,14 @@
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
-import os
-import tempfile
+import os, tempfile
 
 app = Flask(__name__)
-app.secret_key = 'hifzmate_secret_key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hifzmate.db'
+app.secret_key = os.environ.get('SECRET_KEY', 'hifzmate_secret_key')
+
+# Use absolute path so DB works correctly on any host (Render, local, etc.)
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'hifzmate.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -58,56 +60,58 @@ def api_verse():
     surah = request.args.get('surah', 1)
     ayah  = request.args.get('ayah', 1)
     data  = get_verse(surah, ayah)
-    status = 200 if data.get('success') else 503
-    return jsonify(data), status
+    return jsonify(data)
 
 # ── API: Check Audio ─────────────────────────
 @app.route('/api/check_audio', methods=['POST'])
 def api_check_audio():
-    from speech import convert_to_wav, transcribe_audio
+    from speech import transcribe_audio
     from nlp import compare_text
+    from pydub import AudioSegment
 
-    reference = request.form.get('reference', '')
-    language  = request.form.get('language', 'ar-SA')
+    reference  = request.form.get('reference', '')
+    language   = request.form.get('language', 'ar-SA')
     audio_file = request.files.get('audio')
 
     if not audio_file:
         return jsonify({'error': 'No audio provided'}), 400
 
-    # Save uploaded audio to a temp file with the correct extension.
-    original_tmp = tempfile.NamedTemporaryFile(suffix='.webm', delete=False)
-    audio_file.save(original_tmp.name)
-    original_tmp.close()
+    # Browser sends webm/ogg — save it as-is first
+    raw_tmp = tempfile.NamedTemporaryFile(suffix='.webm', delete=False)
+    audio_file.save(raw_tmp.name)
+    raw_tmp.close()
 
-    wav_tmp = None
+    wav_path = raw_tmp.name + '.wav'
+
     try:
+        # Convert webm/ogg -> wav (16kHz mono) so SpeechRecognition can read it
         try:
-            wav_tmp = convert_to_wav(original_tmp.name)
-        except Exception as e:
-            print(f"Audio conversion failed: {e}")
-            return jsonify({'error': 'Could not convert audio file to WAV. Please try again.'}), 400
-
-        spoken_result = transcribe_audio(wav_tmp, language)
-        if not spoken_result.get('success'):
+            audio_seg = AudioSegment.from_file(raw_tmp.name)
+            audio_seg = audio_seg.set_frame_rate(16000).set_channels(1)
+            audio_seg.export(wav_path, format='wav')
+        except Exception as conv_err:
             return jsonify({
-                'success'      : False,
-                'error'        : spoken_result.get('error', 'Audio transcription failed.'),
-                'spoken_text'  : spoken_result.get('text', ''),
-                'accuracy'     : 0,
-                'mistakes'     : [],
-                'mistake_count': 0,
-                'feedback'     : 'Unable to transcribe audio. Please speak clearly and try again.',
-                'word_results' : []
-            }), 400
+                'accuracy': 0, 'mistakes': [], 'mistake_count': 0,
+                'spoken_text': '', 'word_results': [],
+                'feedback': 'Could not process audio. Please try again.',
+                'error': f'Audio conversion failed: {conv_err}'
+            })
 
-        spoken = spoken_result.get('text', '')
-        result = compare_text(spoken, reference)
-        result['spoken_text'] = spoken
+        # transcribe_audio() returns a dict: {text, success, error}
+        speech_result = transcribe_audio(wav_path, language)
+        spoken_text   = speech_result.get('text', '')
+
+        result = compare_text(spoken_text, reference)
+        result['spoken_text'] = spoken_text
+
+        if not speech_result.get('success'):
+            result['speech_error'] = speech_result.get('error')
+
     finally:
-        if os.path.exists(original_tmp.name):
-            os.unlink(original_tmp.name)
-        if wav_tmp and os.path.exists(wav_tmp):
-            os.unlink(wav_tmp)
+        if os.path.exists(raw_tmp.name):
+            os.unlink(raw_tmp.name)
+        if os.path.exists(wav_path):
+            os.unlink(wav_path)
 
     return jsonify(result)
 
@@ -237,9 +241,12 @@ def api_stats():
         'revisions'      : revisions[:5]
     })
 
-# ── Run ──────────────────────────────────────
+# ── Create DB tables on startup (works for both local + gunicorn) ──
+with app.app_context():
+    db.create_all()
+    print("✅ Database ready.")
+
+# ── Run (local development only) ─────────────
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        print("✅ Database ready.")
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
