@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
-import os, tempfile
+import os, shutil, subprocess, tempfile
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'hifzmate_secret_key')
@@ -62,12 +62,34 @@ def api_verse():
     data  = get_verse(surah, ayah)
     return jsonify(data)
 
+def _convert_audio_to_wav(input_path, output_path):
+    try:
+        from pydub import AudioSegment
+    except ImportError:
+        AudioSegment = None
+
+    if AudioSegment is not None:
+        audio_seg = AudioSegment.from_file(input_path)
+        audio_seg = audio_seg.set_frame_rate(16000).set_channels(1)
+        audio_seg.export(output_path, format='wav')
+        return
+
+    ffmpeg_path = shutil.which('ffmpeg')
+    if ffmpeg_path:
+        cmd = [ffmpeg_path, '-y', '-i', input_path, '-ar', '16000', '-ac', '1', output_path]
+        completed = subprocess.run(cmd, capture_output=True, text=True)
+        if completed.returncode == 0:
+            return
+        raise RuntimeError(completed.stderr.strip() or completed.stdout.strip() or 'ffmpeg conversion failed')
+
+    raise RuntimeError('pydub is not installed and ffmpeg is not available')
+
+
 # ── API: Check Audio ─────────────────────────
 @app.route('/api/check_audio', methods=['POST'])
 def api_check_audio():
     from speech import transcribe_audio
     from nlp import compare_text
-    from pydub import AudioSegment
 
     reference  = request.form.get('reference', '')
     language   = request.form.get('language', 'ar-SA')
@@ -86,10 +108,11 @@ def api_check_audio():
     try:
         # Convert webm/ogg -> wav (16kHz mono) so SpeechRecognition can read it
         try:
-            audio_seg = AudioSegment.from_file(raw_tmp.name)
-            audio_seg = audio_seg.set_frame_rate(16000).set_channels(1)
-            audio_seg.export(wav_path, format='wav')
+            _convert_audio_to_wav(raw_tmp.name, wav_path)
         except Exception as conv_err:
+            print(f"❌ AUDIO CONVERSION FAILED: {conv_err}")
+            print("   → Check that ffmpeg is installed and in your system PATH.")
+            print("   → Run 'ffmpeg -version' in terminal to verify.")
             return jsonify({
                 'accuracy': 0, 'mistakes': [], 'mistake_count': 0,
                 'spoken_text': '', 'word_results': [],
