@@ -72,31 +72,64 @@ def transcribe_audio(audio_file_path: str, language: str = "ar-SA") -> dict:
     if not os.path.exists(audio_file_path):
         return {'text': '', 'success': False, 'error': 'Audio file not found'}
 
-    # Adjust recognizer sensitivity
-    recognizer.energy_threshold          = 300
+    # ── Log file properties for debugging ───────────────────────
+    file_size = os.path.getsize(audio_file_path)
+    print(f"🔍 Audio file: {audio_file_path}")
+    print(f"🔍 Audio file size: {file_size} bytes ({file_size / 1024:.1f} KB)")
+
+    if file_size == 0:
+        print("❌ Audio file is empty (0 bytes) — skipping transcription.")
+        return {'text': '', 'success': False, 'error': 'Audio file is empty after conversion.'}
+
+    # ── Log WAV properties via pydub (best-effort) ───────────────
+    try:
+        from pydub import AudioSegment
+        seg = AudioSegment.from_wav(audio_file_path)
+        duration_ms = len(seg)
+        print(f"🔍 WAV duration  : {duration_ms} ms ({duration_ms / 1000:.2f} s)")
+        print(f"🔍 WAV frame rate: {seg.frame_rate} Hz")
+        print(f"🔍 WAV channels  : {seg.channels}")
+        print(f"🔍 WAV sample width: {seg.sample_width} bytes")
+        if duration_ms < 500:
+            print("⚠️  WAV is very short (< 0.5 s) — recognition may fail.")
+    except Exception as probe_err:
+        print(f"⚠️  Could not probe WAV properties: {probe_err}")
+
+    # ── Recognizer settings ──────────────────────────────────────
+    # Raised from 300 → 100 so quiet recordings are still accepted;
+    # dynamic_energy_threshold will adapt upward if needed.
+    recognizer.energy_threshold          = 100
     recognizer.dynamic_energy_threshold  = True
     recognizer.pause_threshold           = 0.8
 
     try:
         with sr.AudioFile(audio_file_path) as source:
-            # Reduce noise
+            # Reduce noise — keep duration short so it doesn't eat real speech
             recognizer.adjust_for_ambient_noise(source, duration=0.3)
+            print(f"🔍 Energy threshold after noise adjustment: {recognizer.energy_threshold:.1f}")
             audio = recognizer.record(source)
+
+        # Log the size of the raw audio data being sent to Google
+        audio_data_len = len(audio.get_raw_data())
+        print(f"🔍 Raw audio data sent to Google: {audio_data_len} bytes ({audio_data_len / 1024:.1f} KB)")
+        print(f"🔍 Sending to Google Speech API — language: {language}")
 
         text = recognizer.recognize_google(audio, language=language)
         print(f"📝 Transcribed ({language}): {text}")
         return {'text': text, 'success': True, 'error': None}
 
     except sr.UnknownValueError:
-        print("⚠️  Could not understand the audio.")
+        print("⚠️  Google could not understand the audio.")
+        print(f"   → language={language}, file_size={file_size}B, "
+              f"energy_threshold={recognizer.energy_threshold:.1f}")
         return {'text': '', 'success': False, 'error': 'Could not understand audio. Please speak clearly.'}
 
     except sr.RequestError as e:
-        print(f"❌ API error: {e}")
+        print(f"❌ Google Speech API error: {e}")
         return {'text': '', 'success': False, 'error': f'Speech service error: {str(e)}'}
 
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        print(f"❌ Unexpected transcription error: {e}")
         return {'text': '', 'success': False, 'error': str(e)}
 
 
