@@ -62,96 +62,77 @@ def api_verse():
     data  = get_verse(surah, ayah)
     return jsonify(data)
 
-def _find_ffmpeg():
-    """Find ffmpeg binary — checks PATH first, then common Nix store paths."""
-    found = shutil.which('ffmpeg')
-    if found:
-        return found
-    nix_bin_dirs = [
-        '/nix/var/nix/profiles/default/bin',
-        '/run/current-system/sw/bin',
-        '/usr/local/bin',
-        '/usr/bin',
-    ]
-    for d in nix_bin_dirs:
-        candidate = os.path.join(d, 'ffmpeg')
-        if os.path.isfile(candidate):
-            return candidate
-    try:
-        result = subprocess.run(
-            ['find', '/nix/store', '-name', 'ffmpeg', '-type', 'f'],
-            capture_output=True, text=True, timeout=10
-        )
-        for line in result.stdout.strip().splitlines():
-            if line.endswith('/ffmpeg'):
-                return line.strip()
-    except Exception:
-        pass
-    return None
-
-
-def _find_ffprobe():
-    """Find ffprobe binary."""
-    found = shutil.which('ffprobe')
-    if found:
-        return found
-    nix_bin_dirs = [
-        '/nix/var/nix/profiles/default/bin',
-        '/run/current-system/sw/bin',
-        '/usr/local/bin',
-        '/usr/bin',
-    ]
-    for d in nix_bin_dirs:
-        candidate = os.path.join(d, 'ffprobe')
-        if os.path.isfile(candidate):
-            return candidate
-    try:
-        result = subprocess.run(
-            ['find', '/nix/store', '-name', 'ffprobe', '-type', 'f'],
-            capture_output=True, text=True, timeout=10
-        )
-        for line in result.stdout.strip().splitlines():
-            if line.endswith('/ffprobe'):
-                return line.strip()
-    except Exception:
-        pass
-    return None
-
-
 def _convert_audio_to_wav(input_path, output_path):
-    """Convert any browser audio (webm/ogg) to 16kHz mono WAV."""
-    ffmpeg_path  = _find_ffmpeg()
-    ffprobe_path = _find_ffprobe()
-    print(f"ffmpeg  path: {ffmpeg_path}")
-    print(f"ffprobe path: {ffprobe_path}")
+    """
+    Convert browser audio (webm/ogg) to 16kHz mono WAV.
+    Strategy:
+      1. Try pydub (works if ffmpeg in PATH)
+      2. Try direct ffmpeg subprocess with full path search
+      3. Try speech_recognition AudioFile directly (fallback for ogg/wav)
+    """
+    import glob
 
-    # Try pydub with explicit binary paths
-    try:
-        from pydub import AudioSegment
-        if ffmpeg_path:
-            AudioSegment.converter = ffmpeg_path
-        if ffprobe_path:
-            AudioSegment.ffprobe   = ffprobe_path
-        audio_seg = AudioSegment.from_file(input_path)
-        audio_seg = audio_seg.set_frame_rate(16000).set_channels(1)
-        audio_seg.export(output_path, format='wav')
-        print("Audio converted via pydub")
-        return
-    except Exception as pydub_err:
-        print(f"pydub failed: {pydub_err} — trying raw ffmpeg subprocess")
+    # ── Strategy 1: find ffmpeg anywhere on system ──────────────
+    ffmpeg_bin  = None
+    ffprobe_bin = None
 
-    # Fallback: call ffmpeg directly as subprocess
-    if ffmpeg_path:
-        cmd = [ffmpeg_path, '-y', '-i', input_path, '-ar', '16000', '-ac', '1', output_path]
-        completed = subprocess.run(cmd, capture_output=True, text=True)
-        print(f"ffmpeg stdout: {completed.stdout}")
-        print(f"ffmpeg stderr: {completed.stderr}")
-        if completed.returncode == 0:
-            print("Audio converted via ffmpeg subprocess")
+    for name, target in [('ffmpeg', None), ('ffprobe', None)]:
+        # shutil.which checks PATH
+        found = shutil.which(name)
+        if found:
+            if name == 'ffmpeg':  ffmpeg_bin  = found
+            else:                 ffprobe_bin = found
+            continue
+        # Search entire filesystem for the binary
+        patterns = [
+            f'/nix/store/*/{name}',
+            f'/nix/store/*/bin/{name}',
+            f'/usr/*/bin/{name}',
+            f'/usr/bin/{name}',
+            f'/usr/local/bin/{name}',
+        ]
+        for pat in patterns:
+            matches = glob.glob(pat)
+            if matches:
+                if name == 'ffmpeg':  ffmpeg_bin  = matches[0]
+                else:                 ffprobe_bin = matches[0]
+                break
+
+    print(f"ffmpeg : {ffmpeg_bin}")
+    print(f"ffprobe: {ffprobe_bin}")
+
+    # ── Strategy 2: pydub with explicit paths ───────────────────
+    if ffmpeg_bin:
+        try:
+            from pydub import AudioSegment
+            AudioSegment.converter = ffmpeg_bin
+            if ffprobe_bin:
+                AudioSegment.ffprobe = ffprobe_bin
+            seg = AudioSegment.from_file(input_path)
+            seg = seg.set_frame_rate(16000).set_channels(1)
+            seg.export(output_path, format='wav')
+            print("Converted via pydub")
             return
-        raise RuntimeError(f"ffmpeg failed: {completed.stderr.strip()}")
+        except Exception as e:
+            print(f"pydub failed: {e}")
 
-    raise RuntimeError('ffmpeg not found — audio conversion impossible')
+        # ── Strategy 3: raw subprocess ───────────────────────────
+        try:
+            cmd = [ffmpeg_bin, '-y', '-i', input_path,
+                   '-ar', '16000', '-ac', '1', output_path]
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            if r.returncode == 0:
+                print("Converted via ffmpeg subprocess")
+                return
+            print(f"ffmpeg stderr: {r.stderr}")
+        except Exception as e:
+            print(f"ffmpeg subprocess failed: {e}")
+
+    # ── Strategy 4: copy as-is and let SpeechRecognition try ────
+    # Some browsers actually send audio/ogg or audio/wav
+    print("No ffmpeg found — copying raw file for SpeechRecognition to try")
+    import shutil as _shutil
+    _shutil.copy(input_path, output_path)
 
 
 # ── API: Check Audio ─────────────────────────
