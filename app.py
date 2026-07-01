@@ -101,6 +101,10 @@ def _convert_audio_to_wav(input_path, output_path):
     print(f"ffmpeg : {ffmpeg_bin}")
     print(f"ffprobe: {ffprobe_bin}")
 
+    # ── Log input file size ──────────────────────────────────────
+    input_size = os.path.getsize(input_path)
+    print(f"🔍 Input audio size : {input_size} bytes ({input_size / 1024:.1f} KB)")
+
     # ── Strategy 2: pydub with explicit paths ───────────────────
     if ffmpeg_bin:
         try:
@@ -110,8 +114,32 @@ def _convert_audio_to_wav(input_path, output_path):
                 AudioSegment.ffprobe = ffprobe_bin
             seg = AudioSegment.from_file(input_path)
             seg = seg.set_frame_rate(16000).set_channels(1)
+
+            # ── Volume normalisation ─────────────────────────────
+            # Boost quiet recordings to a target of -14 dBFS so Google
+            # Speech Recognition has enough signal to work with.
+            target_dBFS = -14.0
+            delta_dBFS  = target_dBFS - seg.dBFS
+            if delta_dBFS > 0:
+                print(f"🔊 Normalising audio: {seg.dBFS:.1f} dBFS → {target_dBFS} dBFS "
+                      f"(+{delta_dBFS:.1f} dB)")
+                seg = seg.apply_gain(delta_dBFS)
+            else:
+                print(f"🔊 Audio level OK: {seg.dBFS:.1f} dBFS (no boost needed)")
+
+            print(f"🔍 Segment — duration: {len(seg)} ms, "
+                  f"frame_rate: {seg.frame_rate} Hz, channels: {seg.channels}")
+
             seg.export(output_path, format='wav')
-            print("Converted via pydub")
+            print("✅ Converted via pydub")
+
+            # ── Verify output ────────────────────────────────────
+            if not os.path.exists(output_path):
+                raise RuntimeError("pydub export produced no output file")
+            output_size = os.path.getsize(output_path)
+            print(f"🔍 Output WAV size  : {output_size} bytes ({output_size / 1024:.1f} KB)")
+            if output_size == 0:
+                raise RuntimeError("pydub export produced a 0-byte WAV file")
             return
         except Exception as e:
             print(f"pydub failed: {e}")
@@ -122,8 +150,12 @@ def _convert_audio_to_wav(input_path, output_path):
                    '-ar', '16000', '-ac', '1', output_path]
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             if r.returncode == 0:
-                print("Converted via ffmpeg subprocess")
-                return
+                output_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
+                print(f"✅ Converted via ffmpeg subprocess — output: {output_size} bytes")
+                if output_size == 0:
+                    print("❌ ffmpeg produced a 0-byte WAV file")
+                else:
+                    return
             print(f"ffmpeg stderr: {r.stderr}")
         except Exception as e:
             print(f"ffmpeg subprocess failed: {e}")
