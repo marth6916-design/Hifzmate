@@ -62,79 +62,6 @@ def api_verse():
     data  = get_verse(surah, ayah)
     return jsonify(data)
 
-def _convert_audio_to_wav(input_path, output_path):
-    """
-    Convert browser audio (webm/ogg) to 16kHz mono WAV.
-    Strategy:
-      1. Try pydub (works if ffmpeg in PATH)
-      2. Try direct ffmpeg subprocess with full path search
-      3. Try speech_recognition AudioFile directly (fallback for ogg/wav)
-    """
-    import glob
-
-    # ── Strategy 1: find ffmpeg anywhere on system ──────────────
-    ffmpeg_bin  = None
-    ffprobe_bin = None
-
-    for name, target in [('ffmpeg', None), ('ffprobe', None)]:
-        # shutil.which checks PATH
-        found = shutil.which(name)
-        if found:
-            if name == 'ffmpeg':  ffmpeg_bin  = found
-            else:                 ffprobe_bin = found
-            continue
-        # Search entire filesystem for the binary
-        patterns = [
-            f'/nix/store/*/{name}',
-            f'/nix/store/*/bin/{name}',
-            f'/usr/*/bin/{name}',
-            f'/usr/bin/{name}',
-            f'/usr/local/bin/{name}',
-        ]
-        for pat in patterns:
-            matches = glob.glob(pat)
-            if matches:
-                if name == 'ffmpeg':  ffmpeg_bin  = matches[0]
-                else:                 ffprobe_bin = matches[0]
-                break
-
-    print(f"ffmpeg : {ffmpeg_bin}")
-    print(f"ffprobe: {ffprobe_bin}")
-
-    # ── Strategy 2: pydub with explicit paths ───────────────────
-    if ffmpeg_bin:
-        try:
-            from pydub import AudioSegment
-            AudioSegment.converter = ffmpeg_bin
-            if ffprobe_bin:
-                AudioSegment.ffprobe = ffprobe_bin
-            seg = AudioSegment.from_file(input_path)
-            seg = seg.set_frame_rate(16000).set_channels(1)
-            seg.export(output_path, format='wav')
-            print("Converted via pydub")
-            return
-        except Exception as e:
-            print(f"pydub failed: {e}")
-
-        # ── Strategy 3: raw subprocess ───────────────────────────
-        try:
-            cmd = [ffmpeg_bin, '-y', '-i', input_path,
-                   '-ar', '16000', '-ac', '1', output_path]
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-            if r.returncode == 0:
-                print("Converted via ffmpeg subprocess")
-                return
-            print(f"ffmpeg stderr: {r.stderr}")
-        except Exception as e:
-            print(f"ffmpeg subprocess failed: {e}")
-
-    # ── Strategy 4: copy as-is and let SpeechRecognition try ────
-    # Some browsers actually send audio/ogg or audio/wav
-    print("No ffmpeg found — copying raw file for SpeechRecognition to try")
-    import shutil as _shutil
-    _shutil.copy(input_path, output_path)
-
-
 # ── API: Check Audio ─────────────────────────
 @app.route('/api/check_audio', methods=['POST'])
 def api_check_audio():
@@ -148,46 +75,26 @@ def api_check_audio():
     if not audio_file:
         return jsonify({'error': 'No audio provided'}), 400
 
-    # Browser sends webm/ogg — save it as-is first
-    raw_tmp = tempfile.NamedTemporaryFile(suffix='.webm', delete=False)
-    audio_file.save(raw_tmp.name)
-    raw_tmp.close()
-
-    wav_path = raw_tmp.name + '.wav'
+    # Browser now sends real PCM WAV (16kHz mono) — no conversion needed!
+    tmp = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
+    audio_file.save(tmp.name)
+    tmp.close()
 
     try:
-        # Convert webm/ogg -> wav (16kHz mono) so SpeechRecognition can read it
-        try:
-            _convert_audio_to_wav(raw_tmp.name, wav_path)
-        except Exception as conv_err:
-            print(f"❌ AUDIO CONVERSION FAILED: {conv_err}")
-            print("   → Check that ffmpeg is installed and in your system PATH.")
-            print("   → Run 'ffmpeg -version' in terminal to verify.")
-            return jsonify({
-                'accuracy': 0, 'mistakes': [], 'mistake_count': 0,
-                'spoken_text': '', 'word_results': [],
-                'feedback': 'Could not process audio. Please try again.',
-                'error': f'Audio conversion failed: {conv_err}'
-            })
-
-        # transcribe_audio() returns a dict: {text, success, error}
-        speech_result = transcribe_audio(wav_path, language)
+        speech_result = transcribe_audio(tmp.name, language)
         spoken_text   = speech_result.get('text', '')
-
+        print(f"Spoken text: '{spoken_text}'")
         result = compare_text(spoken_text, reference)
         result['spoken_text'] = spoken_text
-
         if not speech_result.get('success'):
             result['speech_error'] = speech_result.get('error')
-
     finally:
-        if os.path.exists(raw_tmp.name):
-            os.unlink(raw_tmp.name)
-        if os.path.exists(wav_path):
-            os.unlink(wav_path)
+        if os.path.exists(tmp.name):
+            os.unlink(tmp.name)
 
     return jsonify(result)
 
+# ── API: Check Text (direct) ─────────────────
 # ── API: Check Text (direct) ─────────────────
 @app.route('/api/check', methods=['POST'])
 def api_check():
